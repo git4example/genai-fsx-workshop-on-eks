@@ -1,0 +1,74 @@
+# FSXL_VOLUME_ID=$(aws fsx describe-file-systems --query 'FileSystems[].FileSystemId' --output text)
+# DNS_NAME=$(aws fsx describe-file-systems --query 'FileSystems[].DNSName' --output text)
+# MOUNT_NAME=$(aws fsx describe-file-systems --query 'FileSystems[].LustreConfiguration.MountName' --output text)
+# sed -i'' -e "s/FSXL_VOLUME_ID/$FSXL_VOLUME_ID/g" check.yaml
+# sed -i'' -e "s/DNS_NAME/$DNS_NAME/g" check.yaml
+# sed -i'' -e "s/MOUNT_NAME/$MOUNT_NAME/g" check.yaml
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: sysprep-check
+  name: sysprep-check
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sysprep-check
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: sysprep-check
+    spec:
+      nodeSelector:
+        karpenter.sh/nodepool: sysprep
+      containers:
+      - image: public.ecr.aws/parikshit/lustre-client:latest
+        name: sysprep-check
+        command: ["/bin/bash"]
+        args: ["-c","sleep infinity"]
+        volumeMounts:
+        - name:  persistent-storage
+          mountPath: "/work-dir"
+      volumes:
+      - name: persistent-storage
+        persistentVolumeClaim:
+          claimName: fsx-lustre-claim-check
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fsx-lustre-claim-check
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1200Gi
+  volumeName: fsx-pv-check
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fsx-pv-check
+spec:
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 1200Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - flock
+  csi:
+    driver: fsx.csi.aws.com
+    volumeHandle: FSXL_VOLUME_ID
+    volumeAttributes:
+      dnsname: DNS_NAME
+      mountname: MOUNT_NAME
