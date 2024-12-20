@@ -1,14 +1,109 @@
 
 DO NOT FULL SYNC THIS ASSET BUCKET. WE HAVE "Mistral-7B-Instruct-v0.2" FOLDER ON THIS BUCKET "s3://ws-assets-us-east-1/fb548aaa-7ac1-4162-9a4c-98efc6943f20" WITH 27 GB OF MODEL WHICH WILL BE DELETED IF YOU FULL SYNC
 
+
+## Create stack 
+
+```bash
+aws s3 cp ./static/GenAIFSXWorkshopOnEKS.yaml s3://databackupbucket/GenAIFSXWorkshopOnEKS.yaml
+aws cloudformation validate-template --template-url https://databackupbucket.s3.amazonaws.com/GenAIFSXWorkshopOnEKS.yaml
+```
+
+
+
+```bash
+export REGION=us-east-2
+STACK_NAME=GenAIFSXWorkshopOnEKS
+VSINSTANCE_NAME=VSCodeServerForEKS
+ASSET_BUCKET_ZIPPATH=""
+ASSET_BUCKET=my-genai-fsx-workshop-bucket
+ASSET_BUCKET_PATH=genai-fsx-workshop-on-eks
+
+
+aws cloudformation create-stack \
+  --stack-name ${STACK_NAME} \
+  --template-url https://databackupbucket.s3.amazonaws.com/GenAIFSXWorkshopOnEKS.yaml \
+  --region $REGION \
+  --parameters \
+  ParameterKey=VSCodeUser,ParameterValue=participant \
+  ParameterKey=InstanceName,ParameterValue=${VSINSTANCE_NAME} \
+  ParameterKey=InstanceVolumeSize,ParameterValue=100 \
+  ParameterKey=InstanceType,ParameterValue=t4g.medium \
+  ParameterKey=InstanceOperatingSystem,ParameterValue=AmazonLinux-2023 \
+  ParameterKey=HomeFolder,ParameterValue=environment \
+  ParameterKey=DevServerPort,ParameterValue=8081 \
+  ParameterKey=AssetZipS3Path,ParameterValue=${ASSET_BUCKET_ZIPPATH} \
+  ParameterKey=BranchZipS3Path,ParameterValue="" \
+  ParameterKey=FolderZipS3Path,ParameterValue="" \
+  ParameterKey=C9KubectlVersion,ParameterValue=1.30.2 \
+  ParameterKey=C9NodeViewerVersion,ParameterValue=latest \
+  ParameterKey=EKSClusterName,ParameterValue=eksworkshop \
+  ParameterKey=EKSClusterVersion,ParameterValue=1.30 \
+  ParameterKey=ParticipantAssumedRoleArn,ParameterValue=NONE \
+  ParameterKey=ParticipantRoleArn,ParameterValue=NONE \
+  ParameterKey=ParticipantRoleArn,ParameterValue=NONE \
+  ParameterKey=Assets,ParameterValue=s3://${ASSET_BUCKET}/${ASSET_BUCKET_PATH}/assets/ \
+  --disable-rollback \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+## Clean up :
+This may take upto 30 mins : 
+```bash
+aws cloudformation delete-stack --stack-name ${STACK_NAME} --region $REGION
+aws cloudformation wait stack-delete-complete --stack-name ${STACK_NAME} --region $REGION
+```
+
+
+
+### Stack Creation and deletion times sample  
+
+Create workflow times from local account : 
+```bash
+RunVSCodeSSMDoc                         - 2024-12-11 14:36:33 UTC+1100 - 2024-12-11 14:41:04 UTC+1100 = ~ 5m
+RunInfraDeleteSSMDocument               - 2024-12-11 14:36:33 UTC+1100 - 2024-12-11 14:36:41 UTC+1100 = ~ 10s
+RunInfraSSMDocument                     - 2024-12-11 14:41:04 UTC+1100 - 2024-12-11 14:41:35 UTC+1100 = ~ 30s
+RunDownloadWorkshopAssetsSSMDocument    - 2024-12-11 14:41:36 UTC+1100 - 2024-12-11 14:43:25 UTC+1100 = ~ 2m
+RunSetupFSxLBucketSSMDocument           - 2024-12-11 14:43:26 UTC+1100 - 2024-12-11 14:44:31 UTC+1100 = ~ 1m
+RunCreateVPCEKSClusterFSxLSSMDocument   - 2024-12-11 14:44:31 UTC+1100 - 2024-12-11 14:58:17 UTC+1100 = ~ 14m
+RunCreateEKSClusterResourceSSMDocument  - 2024-12-11 14:58:18 UTC+1100 - 2024-12-11 15:12:04 UTC+1100 = ~ 14m
+
+Stack : GenAIFSXWorkshopOnEKS           - 2024-12-11 14:33:32 UTC+1100 - 2024-12-11 15:12:05 UTC+1100 = ~ 39m
+```
+
+Delete workflow times from local account : (NLB and SG had to be deleted manually)
+```bash
+RunCreateEKSClusterResourceSSMDocument  - ~ 3s
+RunInfraDeleteSSMDocument               - ~ 26m
+RunCreateVPCEKSClusterFSxLSSMDocument   - ~ 1s
+RunSetupFSxLBucketSSMDocument           - ~ 1s
+RunDownloadWorkshopAssetsSSMDocument    - ~ 1s
+RunInfraSSMDocument                     - ~ 1s
+RunVSCodeSSMDoc                         - ~ 1s
+
+Stack : GenAIFSXWorkshopOnEKS           - 2024-12-11 15:40:28 UTC+1100 - 22024-12-11 16:08:06 UTC+1100 = ~ 28m
+```
+
+Workshop Studio : 
+Create workflow times from local account : 
+```
+2024-12-11 16:35:14 UTC+1100
+2024-12-11 17:19:33 UTC+1100
+stack provisioning : ~ 34m
+Account provisioning took total : 00:44:49m
+```
+
+
+
+
 ### Download install/clean up script on cloud9 in Participant/event account
 ```bash
 ASSET_BUCKET=$(aws cloudformation describe-stacks --stack-name genaifsxworkshoponeks --query "Stacks[0].Parameters[?ParameterKey=='Assets'].ParameterValue" --output text)
 ASSET_BUCKET=$(echo $ASSET_BUCKET | sed 's/\/assets\///')    
 ASSET_BUCKET=$ASSET_BUCKET/static
-cd /home/ec2-user/environment/
+cd /home/participant/environment/
 aws s3 sync $ASSET_BUCKET/scripts ./scripts    
-cd /home/ec2-user/environment/scripts
+cd /home/participant/environment/scripts
 ```
 
 <!-- 
@@ -16,11 +111,11 @@ WE DONT NEED THIS:
 ### USE FOLLOWING COMMANDs TO SYNC S3 TO LOCAL/CLOUD9 : 
 ```bash
 ASSET_BUCKET=<asset bucket>
-aws s3 sync $ASSET_BUCKET/eks /home/ec2-user/environment/eks --delete
-aws s3 sync $ASSET_BUCKET/terraform /home/ec2-user/environment/terraform --delete
+aws s3 sync $ASSET_BUCKET/eks /home/participant/environment/eks --delete
+aws s3 sync $ASSET_BUCKET/terraform /home/participant/environment/terraform --delete
 # Following are only required for testing
-aws s3 sync $ASSET_BUCKET/download /home/ec2-user/environment/download --delete
-aws s3 sync $ASSET_BUCKET/scripts /home/ec2-user/environment/scripts --delete
+aws s3 sync $ASSET_BUCKET/download /home/participant/environment/download --delete
+aws s3 sync $ASSET_BUCKET/scripts /home/participant/environment/scripts --delete
 ``` -->
 
 ## DOWNLOAD AND UPLOAD MODEL TO ASSET BUCKET
@@ -53,7 +148,7 @@ sudo resize2fs /dev/nvme0n1p1
 
 Step 4 : Download model 
 ```bash
-docker run -v ./work-dir/:/work-dir/ --entrypoint huggingface-cli public.ecr.aws/parikshit/huggingface-cli download "enghwa/neuron-mistral7bv0.2" --local-dir /work-dir/Mistral-7B-Instruct-v0.2
+docker run -v ./work-dir/:/work-dir/ --entrypoint huggingface-cli public.ecr.aws/parikshit/huggingface-cli:slim download "enghwa/neuron-mistral7bv0.2" --local-dir /work-dir/Mistral-7B-Instruct-v0.2
 ```
 
 Step 5 : Upload model to asset bucket. In following command replace credentials from the workshop studio to allow access to assets bucket.
@@ -63,7 +158,7 @@ docker run -e AWS_DEFAULT_REGION="region" \
   -e AWS_ACCESS_KEY_ID="<access-id>>" \
   -e AWS_SECRET_ACCESS_KEY="<access-key>" \
   -e AWS_SESSION_TOKEN="<session-token>" \
-  -v ./work-dir/:/work-dir/  public.ecr.aws/parikshit/s5cmd cp /work-dir/Mistral-7B-Instruct-v0.2/ s3://ws-assets-us-east-1/fb548aaa-7ac1-4162-9a4c-98efc6943f20/Mistral-7B-Instruct-v0.2/
+  -v ./work-dir/:/work-dir/  public.ecr.aws/parikshit/s5cmd cp /work-dir/Mistral-7B-Instruct-v0.2/ s3://<your-bucket>/Mistral-7B-Instruct-v0.2/
 ```
 
 Step 6 : Check object sizes on bucket

@@ -8,7 +8,7 @@ In the previous module you learnt how you can use Static Provisioning with an ex
 
 #### Step 1: Define the StorageClass
 
-In the following steps you will be using the below environment variables,so lets set them. Copy and paste the below into your Cloud9 Terminal.
+In the following steps you will be using the below environment variables,so lets set them. Copy and paste the below into your VSCode IDE Terminal.
 
 :::code[]{language=bash showLineNumbers=true showCopyAction=true}
 VPC_ID=$(aws eks describe-cluster --name $CLUSTER_NAME --region $AWS_REGION --query "cluster.resourcesVpcConfig.vpcId" --output text)
@@ -26,7 +26,7 @@ echo $SECURITY_GROUP_ID
 
 2. Change to the right working directory so the lab commands work.
 
-::code[cd /home/ec2-user/environment/eks/FSxL]{language=bash showLineNumbers=false showCopyAction=true}
+::code[cd /home/participant/environment/eks/FSxL]{language=bash showLineNumbers=false showCopyAction=true}
 
 
 Below is the output of the `fsxL-storage-class.yaml` file. This file has the StorageClass definition that we will use with the CSI driver to dynamically provision a Persistent Volume Claim (PVC) from FSx for Lustre. Take a moment inspect the parameters shown, which you can configure an FSx for Lustre Instance that will be provisioned by the CSI driver.

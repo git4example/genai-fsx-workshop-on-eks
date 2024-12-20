@@ -7,9 +7,9 @@ In this section, you will log-in to a Pod, inspect the Mistral-7B  model data, a
 
 ##### Step 1: Login to Pod, inspect model data, and create a test file to replicate
 
-Navigate to back to your Cloud9 terminal and change to your working directory.
+Navigate to back to your VSCode IDE terminal and change to your working directory.
 
-::code[cd /home/ec2-user/environment/eks/FSxL]{language=bash showLineNumbers=false showCopyAction=true}
+::code[cd /home/participant/environment/eks/FSxL]{language=bash showLineNumbers=false showCopyAction=true}
 
 Now lets log into the vLLM Pod, first we need to get the pod name by running the following command
 
@@ -25,9 +25,7 @@ Replace the **<YOUR-vLLM-POD-NAME>** value with the value you just copied, and r
 
 Run the following command
 
-:::code{showCopyAction=true showLineNumbers=true language=bash}
-df -h
-:::
+::code[df -h]{showCopyAction=true showLineNumbers=false language=bash}
 
 The **work-dir** is the mount location of your Persistent Volume Claim (backed by FSx for Lustre file system).
 
@@ -66,6 +64,7 @@ ls -ll /work-dir/test
 Navigate to the Amazon S3 Console page:  [Amazon S3 console](https://s3.console.aws.amazon.com)
 
 Click on the S3 bucket that is in your region (linked to your FSx instance). **DO NOT** click on the S3 bucket which has **2ndregion** in its name..
+
 ![S3_console_1](/static/images/s3_console_1.png)
 
 Notice that there is a **test** folder there. Click on the **test** folder. You will now see that the **testfile** you created on the Persistent Volume in your Pod has also been automatically exported from the FSx for Lustre file system, to your S3 bucket.
