@@ -1769,7 +1769,7 @@ Resources:
                   aws sts get-caller-identity
                   echo '=== INSTALL kubectl ==='
                   export KUBECTL_VERSION=${KubectlVersion}
-                  curl --silent --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/$${KUBECTL_VERSION}/2024-07-12/bin/linux/arm64/kubectl
+                  curl --silent --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/$KUBECTL_VERSION/2024-07-12/bin/linux/arm64/kubectl
                   chmod +x /usr/local/bin/kubectl
                   /usr/local/bin/kubectl version --client
 
