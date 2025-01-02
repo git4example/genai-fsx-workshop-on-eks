@@ -92,8 +92,6 @@ In this workshop the **Mistral-7B-Instruct** model is stored in an Amazon S3 buc
 │   │   ├── 430_Fio_performanceTesting.md
 │   │   └── index.en.md
 │   └── index.en.md
-├── contentspec.yaml
-├── preview_build
 └── static
     ├── GenAIFSXWorkshopOnEKS.yaml
     ├── download
