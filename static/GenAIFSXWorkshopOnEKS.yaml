@@ -62,10 +62,16 @@ Metadata:
 Parameters:
 
   KubectlVersion:
-    Description: VSCode IDE instance kubectl version
+    Description: kubectl version to be installed on VSCode IDE instance. Ref - https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
     Type: String
-    Default: 1.30.2
+    Default: 1.31.2
     ConstraintDescription: Must be a valid kubectl version
+
+  KubectlDate:
+    Description: kubectl version release date to be used. Ref - https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+    Type: String
+    Default: "2024-11-15"
+    ConstraintDescription: Must be a valid date 
 
   NodeViewerVersion:
     Type: String
@@ -75,7 +81,7 @@ Parameters:
   EKSClusterVersion:
     Description: EKS Cluster Version
     Type: String
-    Default: "1.30"
+    Default: "1.31"
     ConstraintDescription: Must be a valid eks version
 
   EKSClusterName:
@@ -83,15 +89,9 @@ Parameters:
     Type: String
     Default: eksworkshop
     ConstraintDescription: Must be a valid eks name
- 
-  ParticipantRoleName:
-    Description: "Name of the Team Role"
-    Default: NONE
-    Type: String
-  
+   
   Assets:
     Description: "S3 Bucket location for Assets ex. s3://<s3-bucket-name>/<sub-folder-path>/assets/"
-    # Default: "s3://ws-event-064e131b-cd4-ap-southeast-2/17e62541-8ca1-47a6-8b79-c48000056abe/assets/"
     Type: String
 
 # VSCode parameters 
@@ -1308,6 +1308,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - ssm:DescribeInstanceInformation
                   - ssm:GetCommandInvocation
                   - ssm:ListCommandInvocations
                 Resource:
@@ -1764,13 +1765,31 @@ Resources:
               runCommand:
                 - !Sub |
                   #!/bin/bash
-                  date
-                  echo "export KUBECTL_VERSION=${KubectlVersion}"
-                  aws sts get-caller-identity
+                  date                  
                   echo '=== INSTALL kubectl ==='
+                  echo "KUBECTL_VERSION=${KubectlVersion}"
                   export KUBECTL_VERSION=${KubectlVersion}
-                  curl --silent --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/$KUBECTL_VERSION/2024-07-12/bin/linux/arm64/kubectl
+                  echo "KUBECTL_DATE=${KubectlDate}"
+                  export KUBECTL_DATE=${KubectlDate}
+                  echo "Determine the architecture"
+                  export ARCH=$(uname -m)
+                  case $ARCH in
+                      x86_64)
+                          ARCH=amd64
+                          ;;
+                      aarch64)
+                          ARCH=arm64
+                          ;;
+                      # Add more cases if needed for other architectures
+                  esac
+                  echo "Architecture is " $ARCH
+                  echo "Downloading kubeclt binary"
+                  curl --silent --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/$KUBECTL_VERSION/$KUBECTL_DATE/bin/linux/$ARCH/kubectl
+                  echo "Download complete for kubeclt binary"
+                  ls -la /usr/local/bin/kubectl
+                  echo "Change to execution mode for kubeclt binary"
                   chmod +x /usr/local/bin/kubectl
+                  ls -la /usr/local/bin/kubectl
                   /usr/local/bin/kubectl version --client
 
           - action: aws:runShellScript
@@ -1832,10 +1851,24 @@ Resources:
                 - !Sub |
                   #!/bin/bash
                   echo "=== Install eksctl ==="
-                  export ARCH=arm64
-                  export PLATFORM=$$(uname -s)_$$ARCH
-                  curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$$PLATFORM.tar.gz"
-                  tar -xzf eksctl_$$PLATFORM.tar.gz -C /tmp && rm -f eksctl_$$PLATFORM.tar.gz
+                  echo "Determine the architecture"
+                  export ARCH=$(uname -m)
+                  case $ARCH in
+                      x86_64)
+                          ARCH=amd64
+                          ;;
+                      aarch64)
+                          ARCH=arm64
+                          ;;
+                      # Add more cases if needed for other architectures
+                  esac
+                  echo "Architecture is " $ARCH
+                  export PLATFORM=$(uname -s)_$ARCH
+                  echo "Platform is " $PLATFORM
+                  echo "Downloadking eksctl binary"
+                  curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+                  echo "Download complete for eksctl binary"
+                  tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm -f eksctl_$PLATFORM.tar.gz
                   mv /tmp/eksctl /usr/local/bin
                   echo "eksctl version"
                   eksctl version
